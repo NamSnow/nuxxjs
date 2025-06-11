@@ -1,72 +1,62 @@
 <template>
-  <div class="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
-      <h1 class="text-3xl font-bold text-gray-800 mb-6 text-center">
-        My Tasks
-      </h1>
+  <div class="container">
+    <div class="add-task-section">
+      <input
+        v-model="newTask"
+        type="text"
+        placeholder="Thêm công việc mới..."
+        @keyup.enter="addTask()"
+      />
+      <button @click="addTask()">Add</button>
+    </div>
 
-      <div class="flex gap-4 mb-8">
-        <input
-          type="text"
-          class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700"
-          placeholder="Add a new task..."
-          v-model="newTask"
-          @keyup.enter="addTask()"
-        />
-        <button
-          @click="addTask()"
-          class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
-        >
-          Add
-        </button>
-      </div>
-
-      <div>
-        <div
-          class="flex items-center justify-between bg-gray-50 p-4 rounded-t-lg border-b border-gray-200"
-        >
-          <div class="text-lg font-semibold text-gray-800">Tasks</div>
+    <div class="task-management-section">
+      <div class="search-filter-row">
+        <div>
+          <input
+            type="search"
+            placeholder="Tìm kiếm công việc..."
+            v-model="searchTerm"
+          />
+          <button>Search</button>
         </div>
 
-        <div
-          v-for="(task, index) in tasks"
-          :key="index"
-          class="flex items-center justify-between p-4 bg-white border-b border-gray-200 last:border-b-0"
-        >
-          <input
-            type="text"
-            class="text-gray-700 flex-1 w-full border border-black"
-            v-if="task.isEditing"
-            v-model="task.text"
-            @keyup.enter="saveTask(task)"
-          />
+        <div>Kết quả tìm kiếm: {{ filteredAndSearchedTasks.length }}</div>
+      </div>
+
+      <div class="tasks-overview">
+        <h2>Tasks</h2>
+        <div class="task-count">
+          <img src="~/public/tasks-app.svg" alt="tasks icon" />
+          <div>{{ completedTask }} / {{ tasks.length }}</div>
+        </div>
+        <select v-model="selectedFilter">
+          <option value="">--Chọn--</option>
+          <option value="incomplete">Chưa hoàn thành</option>
+          <option value="completed">Đã hoàn thành</option>
+        </select>
+      </div>
+
+      <div
+        class="task-list"
+        v-for="(task, index) in filteredAndSearchedTasks"
+        :key="index"
+      >
+        <div class="task-item">
           <div
-            v-else
-            class="text-gray-700 flex-1"
-            :class="task.undoTask ? 'line-through text-red-900' : ''"
+            v-if="!task.isEditing"
+            :class="task.complTask ? 'line-through text-gray-700' : ''"
           >
             {{ task.text }}
           </div>
-          <div class="flex gap-2">
-            <button
-              @click="undoTaskButton(task)"
-              class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-md text-sm transition duration-300 ease-in-out"
-            >
-              {{ task.undoTask ? "Undo" : "Complete" }}
-            </button>
-            <button
-              @click="!task.isEditing ? editTask(task) : saveTask(task)"
-              class="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-md text-sm transition duration-300 ease-in-out"
-            >
-              {{ !task.isEditing ? "Edit" : "Save" }}
-            </button>
-            <button
-              @click="deleteTask(index)"
-              class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md text-sm transition duration-300 ease-in-out"
-            >
-              Delete
-            </button>
-          </div>
+          <input v-else type="text" v-model="task.text" />
+          <button @click="buttonComplTask(task)">
+            {{ task.complTask ? "Undo" : "Compl" }}
+          </button>
+          <button @click="task.isEditing ? saveTask(task) : editTask(task)">
+            {{ task.isEditing ? "Save" : "Edit" }}
+          </button>
+          <button @click="deleteTask(index)">Delete</button>
         </div>
       </div>
     </div>
@@ -74,59 +64,92 @@
 </template>
 
 <script setup>
-import "~/assets/css/main.css";
-import { ref, watch, onMounted } from "vue";
+import "../../assets/css/main.css";
+import { ref, computed, watch, onMounted } from "vue";
 const tasks = ref([]);
 const newTask = ref("");
+const selectedFilter = ref("");
+const searchTerm = ref("");
+
+const filteredAndSearchedTasks = computed(() => {
+  let filtered = tasks.value;
+  if (selectedFilter.value === "incomplete") {
+    filtered = filtered.filter((task) => !task.complTask);
+  } else if (selectedFilter.value === "completed") {
+    filtered = filtered.filter((task) => task.complTask);
+  }
+
+  if (searchTerm.value) {
+    const lowerCaseSearchTerm = searchTerm.value.toLowerCase();
+    filtered = filtered.filter((task) =>
+      task.text.toLowerCase().includes(lowerCaseSearchTerm)
+    );
+  }
+
+  return filtered;
+});
+
+const completedTask = computed(() => {
+  return tasks.value.filter((task) => task.complTask).length;
+});
+
 const addTask = () => {
   if (newTask.value.trim() === "") {
     return;
   }
 
-  tasks.value.push({ text: newTask.value, isEditing: false, undoTask: false });
+  tasks.value.push({ text: newTask.value, isEditing: false, complTask: false });
   newTask.value = "";
 };
 
-const editTask = (taskToEdit, index) => {
+const editTask = (taskToEdit) => {
   tasks.value.forEach((task) => {
     task.isEditing = false;
   });
-
-  taskToEdit.undoTask = false;
   taskToEdit.isEditing = true;
-  newTask.value = taskToEdit.text;
+  taskToEdit.complTask = false;
 };
 
 const saveTask = (task) => {
   task.isEditing = false;
-  newTask.value = "";
+  console.log("Sửa thành công");
 };
 
 const deleteTask = (index) => {
-  if (confirm("Bạn có muốn xóa không")) {
-    tasks.value.splice(index, 1);
-  }
+  // if (confirm("Bạn có muốn xóa k")) {
+  //   tasks.value.splice(index, 1);
+  // }
+  tasks.value.splice(index, 1);
 };
 
-const undoTaskButton = (task) => {
-  task.undoTask = !task.undoTask;
-  task.isEditing = false;
+const buttonComplTask = (taskToToggle) => {
+  const originalIndex = tasks.value.findIndex((task) => task === taskToToggle);
+
+  if (taskToToggle !== -1) {
+    if (!taskToToggle.complTask) {
+      tasks.value.splice(originalIndex, 1);
+      taskToToggle.complTask = true;
+      tasks.value.push(taskToToggle);
+    } else {
+      taskToToggle.complTask = false;
+    }
+  }
+
+  taskToToggle.isEditing = false;
 };
 
 watch(
   tasks,
   (newTask) => {
-    localStorage.setItem("storedTask", JSON.stringify(newTask));
+    localStorage.setItem("task-list", JSON.stringify(newTask));
   },
   { deep: true }
 );
 
 onMounted(() => {
-  const storedTask = localStorage.getItem("storedTask");
+  const storedTask = localStorage.getItem("task-list");
   if (storedTask) {
     tasks.value = JSON.parse(storedTask);
   }
 });
 </script>
-
-<style lang="scss" scoped></style>
