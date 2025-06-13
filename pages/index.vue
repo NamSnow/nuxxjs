@@ -25,12 +25,12 @@
             <input
               type="text"
               class="border p-3 rounded-md w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              v-model="newSearchTask"
+              v-model="searchTerm"
               placeholder="Search tasks..."
-              @keyup.enter="searchTaskButtons()"
+              @keyup.enter="handleSearch()"
             />
             <button
-              @click="searchTaskButtons()"
+              @click="handleSearch()"
               class="bg-blue-500 hover:bg-blue-700 p-3 rounded-md cursor-pointer font-semibold transition duration-200 ease-in-out"
             >
               SEARCH
@@ -62,7 +62,7 @@
               class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full items-center justify-center border-2 border-gray-700"
             >
               {{ taskAccountCompleted }} /
-              {{ finalFilterTasks.length }}
+              {{ tasks.length }}
             </div>
           </div>
         </div>
@@ -73,11 +73,20 @@
       >
         <div
           class="flex flex-col sm:flex-row gap-4 items-center p-4 bg-gray-700 rounded-md shadow-sm"
-          v-for="(task, index) in finalFilterTasks"
+          v-for="(task, index) in tasks"
           :key="index"
         >
+          {{ currentEdit }}
+          <input
+            v-if="index === currentEdit"
+            v-model="task.text"
+            @keyup.enter="saveTask(task, index)"
+            @blur="onBlur(task)"
+            type="text"
+            class="flex-grow text-xl sm:text-2xl border border-gray-500 p-2 rounded-md overflow-auto focus:outline-none focus:ring-2 focus:ring-violet-500"
+          />
           <div
-            v-if="!task.isEditing"
+            v-else
             class="flex-grow text-xl sm:text-2xl font-medium break-words max-h-20 overflow-auto"
             :class="
               task.completedTask ? 'text-green-400 line-through' : 'text-white'
@@ -85,27 +94,25 @@
           >
             {{ task.text }}
           </div>
-          <input
-            v-else
-            v-model="task.text"
-            @keyup.enter="saveTask(task, index)"
-            @blur="onBlur(task)"
-            type="text"
-            class="flex-grow text-xl sm:text-2xl border border-gray-500 p-2 rounded-md overflow-auto focus:outline-none focus:ring-2 focus:ring-violet-500"
-          />
+
           <!-- <div>{{ task.date }}</div> -->
           <div class="flex flex-wrap gap-3 mt-3 sm:mt-0">
             <button
+              :class="index === currentEdit ? 'disabled' : ''"
               class="bg-yellow-500 hover:bg-yellow-700 w-20 h-8 rounded-md cursor-pointer font-semibold transition duration-200 ease-in-out"
-              @click="completedButtonTask(task)"
+              @click="completedButtonTask(task, index)"
             >
               {{ task.completedTask ? "Undo" : "Complete" }}
             </button>
             <button
-              @click="!task.isEditing ? editTask(task) : saveTask(task, index)"
+              @click="
+                index === currentEdit
+                  ? saveTask(task, index)
+                  : editTask(task, index)
+              "
               class="bg-violet-500 hover:bg-violet-700 w-20 h-8 rounded-md cursor-pointer font-semibold transition duration-200 ease-in-out"
             >
-              {{ !task.isEditing ? "Edit" : "Save" }}
+              {{ index === currentEdit ? " Save" : "Edit" }}
             </button>
             <button
               class="bg-red-600 hover:bg-red-800 w-20 h-8 rounded-md cursor-pointer font-semibold transition duration-200 ease-in-out"
@@ -116,7 +123,7 @@
           </div>
         </div>
         <div
-          v-if="finalFilterTasks.length === 0"
+          v-if="tasks.length === 0"
           class="text-center text-gray-400 text-lg py-10"
         >
           No tasks found. Try adding some or adjusting your search/filter.
@@ -136,34 +143,65 @@ const newSearchTask = ref("");
 const searchTerm = ref("");
 const editingInProgress = ref(false);
 const orgTaskValue = new Map();
+const currentEdit = ref(-1);
+const arraySearch = ref([]);
+const _array = ref([]);
+watch(
+  () => [selectedTask.value],
+  () => {
+    console.log(_array.value);
+    
+    let a = _array.value.length === 0 ? tasks.value : _array.value;
+    console.log('a', a);
+
+    if (selectedTask.value) {
+      if (selectedTask.value === "incomplete") {
+        tasks.value = a.filter((task) => !task.completedTask);
+      } else if (selectedTask.value === "completed") {
+        tasks.value = a.filter((task) => task.completedTask);
+      }
+    }
+  }
+);
 
 //
-let taskSearch = computed(() => {
-  let filterTask = tasks.value;
-  if (selectedTask.value === "incomplete") {
-    filterTask = filterTask.filter((task) => !task.completedTask);
-  } else if (selectedTask.value === "completed") {
-    filterTask = filterTask.filter((task) => task.completedTask);
-  }
-  return filterTask;
-});
+// const taskSearch = computed(() => {
+//   let filterTask = tasks.value;
+//   if (selectedTask.value === "incomplete") {
+//     filterTask = filterTask.filter((task) => !task.completedTask);
+//   } else if (selectedTask.value === "completed") {
+//     filterTask = filterTask.filter((task) => task.completedTask);
+//   }
+//   return filterTask;
+// });
 
-let finalFilterTasks = computed(() => {
-  let searched = taskSearch.value;
+// const finalFilterTasks = computed(() => {
+//   let searched = taskSearch.value;
+//   if (searchTerm.value) {
+//     const searchTermLowerCase = searchTerm.value.toLowerCase();
+//     searched = searched.filter((e) => {
+//       const taskTextLowerCase = e.text.toLowerCase();
+//       const includesSearchTerm =
+//         taskTextLowerCase.includes(searchTermLowerCase);
+//       return includesSearchTerm;
+//     });
+//   }
+//   return searched;
+// });
+
+const handleSearch = () => {
+  console.log(searchTerm.value);
   if (searchTerm.value) {
     const searchTermLowerCase = searchTerm.value.toLowerCase();
-    searched = searched.filter((e) => {
+    _array.value = task.value.value.filter((e) => {
       const taskTextLowerCase = e.text.toLowerCase();
       const includesSearchTerm =
         taskTextLowerCase.includes(searchTermLowerCase);
       return includesSearchTerm;
     });
+  } else {
+    tasks.value = JSON.parse(localStorage.getItem("tasks-list")) || [];
   }
-  return searched;
-});
-
-const searchTaskButtons = () => {
-  searchTerm.value = newSearchTask.value.trim();
 };
 
 const taskAccountCompleted = computed(() => {
@@ -180,27 +218,24 @@ const addTask = () => {
     tasks.value.push({
       text: newTask.value,
       date: dateTask.value,
-      isEditing: false,
       completedTask: false,
     });
     newTask.value = "";
   }
 };
 
-watch(
-  tasks,
-  (newTask) => {
-    editingInProgress.value = newTask.some((task) => task.isEditing);
-  },
-  { deep: true }
-);
+// watch(
+//   tasks,
+//   (newTask) => {
+//     editingInProgress.value = newTask.some((task) => task.isEditing);
+//   },
+//   { deep: true }
+// );
 
-const editTask = (task) => {
+const editTask = (task, index) => {
   if (task.completedTask === true) return;
-  else if (!editingInProgress.value && !task.isEditing) {
-    // orgTaskValue.set(task, task.text);
-    task.isEditing = true;
-  }
+  // orgTaskValue.set(task, task.text);
+  currentEdit.value = index;
 };
 
 const saveTask = (task, index) => {
@@ -215,6 +250,7 @@ const saveTask = (task, index) => {
   } else {
     console.log(orgTaskValue);
     // orgTaskValue.delete(task);
+    localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
     task.isEditing = false;
     tasks.value = [...tasks.value];
   }
@@ -237,23 +273,26 @@ const deleteTask = (task, index) => {
   tasks.value.splice(index, 1);
 };
 
-const completedButtonTask = (task) => {
-  if (task.isEditing === true) {
-    return;
-  } else {
-    task.completedTask = !task.completedTask;
-  }
+const completedButtonTask = (task, index) => {
+  if (currentEdit.value === index) return;
+  task.completedTask = !task.completedTask;
 };
 
-watch(
-  tasks,
-  (newTask) => {
-    localStorage.setItem("tasks-list", JSON.stringify(newTask));
-  },
-  { deep: true }
-);
+// watch(
+//   tasks,
+//   (newTask) => {
+//     localStorage.setItem("tasks-list", JSON.stringify(newTask));
+//   },
+//   { deep: true }
+// );
 
 onMounted(() => {
   tasks.value = JSON.parse(localStorage.getItem("tasks-list")) || [];
+  arraySearch.value = [...tasks.value];
 });
 </script>
+<style lang="css">
+button.disabled {
+  cursor: not-allowed;
+}
+</style>
