@@ -150,9 +150,9 @@ watch(
   () => [selectedTask.value],
   () => {
     console.log(_array.value);
-    
+
     let a = _array.value.length === 0 ? tasks.value : _array.value;
-    console.log('a', a);
+    console.log("a", a);
 
     if (selectedTask.value) {
       if (selectedTask.value === "incomplete") {
