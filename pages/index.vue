@@ -130,10 +130,12 @@
         </div>
       </div>
     </div>
+    <Store />
   </div>
 </template>
 <script setup>
 import { ref, computed, watch, onMounted } from "vue";
+// import { useStore } from "vuex/types/index.js";
 
 const tasks = ref([]);
 const newTask = ref("");
@@ -146,6 +148,8 @@ const orgTaskValue = new Map();
 const currentEdit = ref(-1);
 const arraySearch = ref([]);
 const _array = ref([]);
+// const store = useStore();
+
 watch(
   () => [selectedTask.value],
   () => {
@@ -189,11 +193,52 @@ watch(
 //   return searched;
 // });
 
+const handleResearch = () => {
+  tasks.value = JSON.parse(localStorage.getItem("tasks-list"));
+  handleSearch();
+};
+watch(
+  () => [selectedTask.value],
+  () => {
+    handleResearch();
+    if (selectedTask.value) {
+      if (selectedTask.value === "incomplete") {
+        tasks.value = tasks.value.filter((task) => !task.completedTask);
+        console.log("123", 123);
+      } else if (selectedTask.value === "completed") {
+        tasks.value = tasks.value.filter((task) => task.completedTask);
+      }
+    }
+  }
+);
+
+//
+// const taskSearch = computed(() => {
+//   let filterTask = tasks.value;
+//   if (selectedTask.value === "incomplete") {
+//     filterTask = filterTask.filter((task) => !task.completedTask);
+//   } else if (selectedTask.value === "completed") {
+//     filterTask = filterTask.filter((task) => task.completedTask);
+//   }
+//   return filterTask;
+// });
+// const finalFilterTasks = computed(() => {
+//   let searched = taskSearch.value;
+//   if (searchTerm.value) {
+//     const searchTermLowerCase = searchTerm.value.toLowerCase();
+//     searched = searched.filter((e) => {
+//       const taskTextLowerCase = e.text.toLowerCase();
+//       const includesSearchTerm =
+//         taskTextLowerCase.includes(searchTermLowerCase);
+//       return includesSearchTerm;
+//     });
+//   }
+//   return searched;
+// });
 const handleSearch = () => {
-  console.log(searchTerm.value);
   if (searchTerm.value) {
     const searchTermLowerCase = searchTerm.value.toLowerCase();
-    _array.value = task.value.value.filter((e) => {
+    tasks.value = tasks.value.filter((e) => {
       const taskTextLowerCase = e.text.toLowerCase();
       const includesSearchTerm =
         taskTextLowerCase.includes(searchTermLowerCase);
@@ -203,14 +248,12 @@ const handleSearch = () => {
     tasks.value = JSON.parse(localStorage.getItem("tasks-list")) || [];
   }
 };
-
 const taskAccountCompleted = computed(() => {
   const countTrue = tasks.value.filter((task) => {
     return task.completedTask;
   });
   return countTrue.length;
 });
-
 const addTask = () => {
   if (newTask.value.trim() === "") {
     return;
@@ -220,10 +263,10 @@ const addTask = () => {
       date: dateTask.value,
       completedTask: false,
     });
+    localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
     newTask.value = "";
   }
 };
-
 // watch(
 //   tasks,
 //   (newTask) => {
@@ -231,7 +274,6 @@ const addTask = () => {
 //   },
 //   { deep: true }
 // );
-
 const editTask = (task, index) => {
   if (task.completedTask === true) return;
   // orgTaskValue.set(task, task.text);
@@ -251,7 +293,7 @@ const saveTask = (task, index) => {
     console.log(orgTaskValue);
     // orgTaskValue.delete(task);
     localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
-    task.isEditing = false;
+    currentEdit.value = -1;
     tasks.value = [...tasks.value];
   }
 };
@@ -263,19 +305,19 @@ const onBlur = (task) => {
   // }
   // task.isEditing = false;
 };
-
 const deleteTask = (task, index) => {
   console.log(
-    `${task.text} ${task.completedTask ? "hoàn thành, " : "chưa hoàn thành"}, ${
-      task.isEditing ? "đang sửa" : "sửa hoàn tất"
+    `${task.text} ${task.completedTask ? "hoàn thành" : "chưa hoàn thành"}, ${
+      currentEdit.value !== -1 ? "đang sửa" : "sửa hoàn tất"
     }`
   );
   tasks.value.splice(index, 1);
+  localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
 };
-
 const completedButtonTask = (task, index) => {
   if (currentEdit.value === index) return;
   task.completedTask = !task.completedTask;
+  localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
 };
 
 // watch(
@@ -285,10 +327,8 @@ const completedButtonTask = (task, index) => {
 //   },
 //   { deep: true }
 // );
-
 onMounted(() => {
   tasks.value = JSON.parse(localStorage.getItem("tasks-list")) || [];
-  arraySearch.value = [...tasks.value];
 });
 </script>
 <style lang="css">
