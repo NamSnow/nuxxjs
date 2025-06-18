@@ -46,7 +46,7 @@
               class="border p-3 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               v-model="selectedTask"
             >
-              <option value="#" class="bg-gray-700">-- Select --</option>
+              <option value="" class="bg-gray-700">-- Select --</option>
               <option value="incomplete" class="bg-gray-700">Incomplete</option>
               <option value="completed" class="bg-gray-700">Completed</option>
             </select>
@@ -76,12 +76,11 @@
           v-for="(task, index) in tasks"
           :key="index"
         >
-          {{ currentEdit }}
           <input
             v-if="index === currentEdit"
             v-model="task.text"
             @keyup.enter="saveTask(task, index)"
-            @blur="onBlur(task)"
+            @blur="saveTask(task, index)"
             type="text"
             class="flex-grow text-xl sm:text-2xl border border-gray-500 p-2 rounded-md overflow-auto focus:outline-none focus:ring-2 focus:ring-violet-500"
           />
@@ -95,10 +94,9 @@
             {{ task.text }}
           </div>
 
-          <!-- <div>{{ task.date }}</div> -->
           <div class="flex flex-wrap gap-3 mt-3 sm:mt-0">
             <button
-              :class="index === currentEdit ? 'disabled' : ''"
+              :class="{ disabled: index === currentEdit }"
               class="bg-yellow-500 hover:bg-yellow-700 w-20 h-8 rounded-md cursor-pointer font-semibold transition duration-200 ease-in-out"
               @click="completedButtonTask(task, index)"
             >
@@ -130,209 +128,43 @@
         </div>
       </div>
     </div>
-    <Store />
   </div>
 </template>
+
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
-// import { useStore } from "vuex/types/index.js";
+import { onMounted, ref } from "vue";
+import { useTodoStore } from "~/store/todo.js";
+import { storeToRefs } from "pinia";
 
-const tasks = ref([]);
-const newTask = ref("");
-const dateTask = ref(new Date().toLocaleString());
-const selectedTask = ref("");
-const newSearchTask = ref("");
-const searchTerm = ref("");
-const editingInProgress = ref(false);
-const orgTaskValue = new Map();
-const currentEdit = ref(-1);
-const arraySearch = ref([]);
-const _array = ref([]);
-// const store = useStore();
+const store = useTodoStore();
 
-watch(
-  () => [selectedTask.value],
-  () => {
-    console.log(_array.value);
+const {
+  newTask,
+  searchTerm,
+  selectedTask,
+  tasks,
+  currentEdit,
+  taskAccountCompleted,
+} = storeToRefs(store);
 
-    let a = _array.value.length === 0 ? tasks.value : _array.value;
-    console.log("a", a);
+const {
+  addTask,
+  handleSearch,
+  editTask,
+  saveTask,
+  deleteTask,
+  completedButtonTask,
+  initializeStore,
+} = store;
 
-    if (selectedTask.value) {
-      if (selectedTask.value === "incomplete") {
-        tasks.value = a.filter((task) => !task.completedTask);
-      } else if (selectedTask.value === "completed") {
-        tasks.value = a.filter((task) => task.completedTask);
-      }
-    }
-  }
-);
-
-//
-// const taskSearch = computed(() => {
-//   let filterTask = tasks.value;
-//   if (selectedTask.value === "incomplete") {
-//     filterTask = filterTask.filter((task) => !task.completedTask);
-//   } else if (selectedTask.value === "completed") {
-//     filterTask = filterTask.filter((task) => task.completedTask);
-//   }
-//   return filterTask;
-// });
-
-// const finalFilterTasks = computed(() => {
-//   let searched = taskSearch.value;
-//   if (searchTerm.value) {
-//     const searchTermLowerCase = searchTerm.value.toLowerCase();
-//     searched = searched.filter((e) => {
-//       const taskTextLowerCase = e.text.toLowerCase();
-//       const includesSearchTerm =
-//         taskTextLowerCase.includes(searchTermLowerCase);
-//       return includesSearchTerm;
-//     });
-//   }
-//   return searched;
-// });
-
-const handleResearch = () => {
-  tasks.value = JSON.parse(localStorage.getItem("tasks-list"));
-  handleSearch();
-};
-watch(
-  () => [selectedTask.value],
-  () => {
-    handleResearch();
-    if (selectedTask.value) {
-      if (selectedTask.value === "incomplete") {
-        tasks.value = tasks.value.filter((task) => !task.completedTask);
-        console.log("123", 123);
-      } else if (selectedTask.value === "completed") {
-        tasks.value = tasks.value.filter((task) => task.completedTask);
-      }
-    }
-  }
-);
-
-//
-// const taskSearch = computed(() => {
-//   let filterTask = tasks.value;
-//   if (selectedTask.value === "incomplete") {
-//     filterTask = filterTask.filter((task) => !task.completedTask);
-//   } else if (selectedTask.value === "completed") {
-//     filterTask = filterTask.filter((task) => task.completedTask);
-//   }
-//   return filterTask;
-// });
-// const finalFilterTasks = computed(() => {
-//   let searched = taskSearch.value;
-//   if (searchTerm.value) {
-//     const searchTermLowerCase = searchTerm.value.toLowerCase();
-//     searched = searched.filter((e) => {
-//       const taskTextLowerCase = e.text.toLowerCase();
-//       const includesSearchTerm =
-//         taskTextLowerCase.includes(searchTermLowerCase);
-//       return includesSearchTerm;
-//     });
-//   }
-//   return searched;
-// });
-const handleSearch = () => {
-  if (searchTerm.value) {
-    const searchTermLowerCase = searchTerm.value.toLowerCase();
-    tasks.value = tasks.value.filter((e) => {
-      const taskTextLowerCase = e.text.toLowerCase();
-      const includesSearchTerm =
-        taskTextLowerCase.includes(searchTermLowerCase);
-      return includesSearchTerm;
-    });
-  } else {
-    tasks.value = JSON.parse(localStorage.getItem("tasks-list")) || [];
-  }
-};
-const taskAccountCompleted = computed(() => {
-  const countTrue = tasks.value.filter((task) => {
-    return task.completedTask;
-  });
-  return countTrue.length;
-});
-const addTask = () => {
-  if (newTask.value.trim() === "") {
-    return;
-  } else {
-    tasks.value.push({
-      text: newTask.value,
-      date: dateTask.value,
-      completedTask: false,
-    });
-    localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
-    newTask.value = "";
-  }
-};
-// watch(
-//   tasks,
-//   (newTask) => {
-//     editingInProgress.value = newTask.some((task) => task.isEditing);
-//   },
-//   { deep: true }
-// );
-const editTask = (task, index) => {
-  if (task.completedTask === true) return;
-  // orgTaskValue.set(task, task.text);
-  currentEdit.value = index;
-};
-
-const saveTask = (task, index) => {
-  if (task.text === "") {
-    if (
-      confirm(
-        "You just edited the empty task, the task will be deleted, ok"
-      ) === true
-    ) {
-      tasks.value.splice(index, 1);
-    }
-  } else {
-    console.log(orgTaskValue);
-    // orgTaskValue.delete(task);
-    localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
-    currentEdit.value = -1;
-    tasks.value = [...tasks.value];
-  }
-};
-
-const onBlur = (task) => {
-  // if (orgTaskValue.has(task)) {
-  //   task.text = orgTaskValue.get(task);
-  //   orgTaskValue.delete(task);
-  // }
-  // task.isEditing = false;
-};
-const deleteTask = (task, index) => {
-  console.log(
-    `${task.text} ${task.completedTask ? "hoàn thành" : "chưa hoàn thành"}, ${
-      currentEdit.value !== -1 ? "đang sửa" : "sửa hoàn tất"
-    }`
-  );
-  tasks.value.splice(index, 1);
-  localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
-};
-const completedButtonTask = (task, index) => {
-  if (currentEdit.value === index) return;
-  task.completedTask = !task.completedTask;
-  localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
-};
-
-// watch(
-//   tasks,
-//   (newTask) => {
-//     localStorage.setItem("tasks-list", JSON.stringify(newTask));
-//   },
-//   { deep: true }
-// );
 onMounted(() => {
-  tasks.value = JSON.parse(localStorage.getItem("tasks-list")) || [];
+  initializeStore;
 });
 </script>
+
 <style lang="css">
 button.disabled {
   cursor: not-allowed;
+  opacity: 0.6; /* Add visual feedback for disabled */
 }
 </style>

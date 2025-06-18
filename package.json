@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "npx json-server --port 3002 json_server/db.json",
+    "start": "npx json-server --port 3002 db.json",
     "build": "nuxt build",
     "dev": "nuxt dev --open",
     "generate": "nuxt generate",

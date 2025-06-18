@@ -5,11 +5,14 @@ export default defineNuxtConfig({
   modules: ["@nuxtjs/tailwindcss", "@nuxt/image", "@pinia/nuxt"],
   // css: ["~/assets/css/main.css"],
 
-  devtools: { enabled: true },
+  // devtools: { enabled: true },
   image: {
     domains: ["https://cdn.dummyjson.com"],
   },
   hooks: {
     close: () => {},
+  },
+  pinia: {
+    storesDirs: ["./store/**", "./custom-folder/stores/**"],
   },
 });
