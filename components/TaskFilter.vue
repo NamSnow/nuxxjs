@@ -38,16 +38,25 @@
       <div
         class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full items-center justify-center border-2 border-gray-700"
       >
-        {{ taskAccountCompleted }} /
-        {{ tasks.length }}
+        {{ taskAccountCompleted }} / {{ tasks.length }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { watch } from "vue";
+import { useTodoStore } from "~/store/todo.js";
+import { storeToRefs } from "pinia";
+
+const store = useTodoStore();
+const { selectedTask, tasks, searchTerm, taskAccountCompleted } =
+  storeToRefs(store);
+const { handleSearch, handleResearch } = store;
+
+// Watch the selectedTask filter and update tasks accordingly
 watch(
-  () => [selectedTask.value],
+  () => selectedTask.value,
   () => {
     handleResearch();
     if (selectedTask.value) {

@@ -97,22 +97,20 @@ const {
   searchTerm,
   selectedTask,
   tasks,
+  filteredTasks,
   currentEdit,
   taskAccountCompleted,
-} = storeToRefs(store);
-
-const {
   addTask,
   handleSearch,
   editTask,
   saveTask,
   deleteTask,
   completedButtonTask,
-  initializeStore,
-} = store;
+} = storeToRefs(store);
 
 onMounted(() => {
   tasks.value = JSON.parse(localStorage.getItem("tasks-list")) || [];
+  store.watchTasksFilter;
 });
 </script>
 

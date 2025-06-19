@@ -26,30 +26,45 @@ export const useTodoStore = defineStore("todo", {
       });
       return countTrue.length;
     },
+
+    handleSearch() {
+      if (this.searchTerm) {
+        const searchTermLowerCase = searchTerm.value.toLowerCase();
+        this.tasks = tasks.value.filter((e) => {
+          const taskTextLowerCase = e.text.toLowerCase();
+          const includesSearchTerm =
+            taskTextLowerCase.includes(searchTermLowerCase);
+          return includesSearchTerm;
+        });
+      } else {
+        this.tasks = JSON.parse(localStorage.getItem("tasks-list")) || [];
+      }
+    },
+
+    handleResearch() {
+      this.tasks = JSON.parse(localStorage.getItem("tasks-list"));
+      handleSearch();
+    },
+
+    // watchTasksFilter() {
+    //   watch(
+    //     () => [selectedTask.value],
+    //     () => {
+    //       handleResearch();
+    //       if (selectedTask.value) {
+    //         if (selectedTask.value === "incomplete") {
+    //           tasks.value = tasks.value.filter((task) => !task.completedTask);
+    //           console.log("123", 123);
+    //         } else if (selectedTask.value === "completed") {
+    //           tasks.value = tasks.value.filter((task) => task.completedTask);
+    //         }
+    //       }
+    //     }
+    //   );
+    // },
   },
 
   actions: {
-    setupSelectedTaskWatcher() {
-      watch(
-        () => [selectedTask.value],
-        () => {
-          handleResearch();
-          if (selectedTask.value) {
-            if (selectedTask.value === "incomplete") {
-              tasks.value = tasks.value.filter((task) => !task.completedTask);
-              console.log("123", 123);
-            } else if (selectedTask.value === "completed") {
-              tasks.value = tasks.value.filter((task) => task.completedTask);
-            }
-          }
-        }
-      );
-    },
-
-    initializeStore() {
-      tasks.value = JSON.parse(localStorage.getItem("tasks-list")) || [];
-    },
-
     addTask() {
       if (newTask.value.trim() === "") {
         return;
@@ -68,25 +83,6 @@ export const useTodoStore = defineStore("todo", {
       if (task.completedTask === true) return;
       // orgTaskValue.set(task, task.text);
       currentEdit.value = index;
-    },
-
-    handleSearch() {
-      if (searchTerm.value) {
-        const searchTermLowerCase = searchTerm.value.toLowerCase();
-        tasks.value = tasks.value.filter((e) => {
-          const taskTextLowerCase = e.text.toLowerCase();
-          const includesSearchTerm =
-            taskTextLowerCase.includes(searchTermLowerCase);
-          return includesSearchTerm;
-        });
-      } else {
-        tasks.value = JSON.parse(localStorage.getItem("tasks-list")) || [];
-      }
-    },
-
-    handleResearch() {
-      tasks.value = JSON.parse(localStorage.getItem("tasks-list"));
-      handleSearch();
     },
 
     saveTask(task, index) {
