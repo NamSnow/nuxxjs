@@ -6,17 +6,17 @@ import { defineStore } from "pinia";
 
 export const useTodoStore = defineStore("todo", {
   state: () => ({
-    tasks: [],
-    newTask: "",
+    tasks: ref([]),
+    newTask: ref(""),
     dateTask: new Date().toLocaleString(),
-    selectedTask: "",
-    newSearchTask: "",
-    searchTerm: "",
-    editingInProgress: false,
+    selectedTask: ref(""),
+    newSearchTask: ref(""),
+    searchTerm: ref(""),
+    editingInProgress: ref(false),
     orgTaskValue: new Map(),
-    currentEdit: -1,
-    arraySearch: [],
-    _array: [],
+    currentEdit: ref(-1),
+    arraySearch: ref([]),
+    _array: ref([]),
   }),
 
   getters: {
@@ -25,25 +25,6 @@ export const useTodoStore = defineStore("todo", {
         return task.completedTask;
       });
       return countTrue.length;
-    },
-
-    handleSearch() {
-      if (this.searchTerm) {
-        const searchTermLowerCase = searchTerm.value.toLowerCase();
-        this.tasks = tasks.value.filter((e) => {
-          const taskTextLowerCase = e.text.toLowerCase();
-          const includesSearchTerm =
-            taskTextLowerCase.includes(searchTermLowerCase);
-          return includesSearchTerm;
-        });
-      } else {
-        this.tasks = JSON.parse(localStorage.getItem("tasks-list")) || [];
-      }
-    },
-
-    handleResearch() {
-      this.tasks = JSON.parse(localStorage.getItem("tasks-list"));
-      handleSearch();
     },
 
     // watchTasksFilter() {
@@ -117,6 +98,25 @@ export const useTodoStore = defineStore("todo", {
       if (currentEdit.value === index) return;
       task.completedTask = !task.completedTask;
       localStorage.setItem("tasks-list", JSON.stringify(tasks.value));
+    },
+
+    handleSearch() {
+      if (this.searchTerm) {
+        const searchTermLowerCase = searchTerm.value.toLowerCase();
+        this.tasks = tasks.value.filter((e) => {
+          const taskTextLowerCase = e.text.toLowerCase();
+          const includesSearchTerm =
+            taskTextLowerCase.includes(searchTermLowerCase);
+          return includesSearchTerm;
+        });
+      } else {
+        this.tasks = JSON.parse(localStorage.getItem("tasks-list")) || [];
+      }
+    },
+
+    handleResearch() {
+      this.tasks = JSON.parse(localStorage.getItem("tasks-list"));
+      handleSearch();
     },
   },
 });
