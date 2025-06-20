@@ -27,7 +27,7 @@
         class="border p-3 rounded-md bg-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
         v-model="selectedTask"
       >
-        <option value="" class="bg-gray-700">-- Select --</option>
+        <option value="#" class="bg-gray-700">-- Select --</option>
         <option value="incomplete" class="bg-gray-700">Incomplete</option>
         <option value="completed" class="bg-gray-700">Completed</option>
       </select>
@@ -38,37 +38,33 @@
       <div
         class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full items-center justify-center border-2 border-gray-700"
       >
-        {{ taskAccountCompleted }} / {{ tasks.length }}
+        {{ taskAccountCompleted }} /
+        {{ tasks.length }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { watch } from "vue";
-import { useTodoStore } from "~/store/todo.js";
-import { storeToRefs } from "pinia";
+import { ref, watch } from "vue";
+import { useTodoStore } from "~/store/todo";
 
-const store = useTodoStore();
-const { selectedTask, tasks, searchTerm, taskAccountCompleted } =
-  storeToRefs(store);
-const { handleSearch, handleResearch } = store;
+const todoStore = useTodoStore();
 
-// Watch the selectedTask filter and update tasks accordingly
-watch(
-  () => selectedTask.value,
-  () => {
-    handleResearch();
-    if (selectedTask.value) {
-      if (selectedTask.value === "incomplete") {
-        tasks.value = tasks.value.filter((task) => !task.completedTask);
-        console.log("123", 123);
-      } else if (selectedTask.value === "completed") {
-        tasks.value = tasks.value.filter((task) => task.completedTask);
-      }
-    }
-  }
-);
+const props = defineProps({
+  tasks: Array,
+  taskAccountCompleted: Number,
+});
+
+const emit = defineEmits(["update:searchTerm", "update:selectedFilter"]);
+const searchTerm = ref("");
+const selectedTask = ref("");
+
+watch(selectedTask, (val) => emit("update:selectedFilter", val));
+
+function handleSearch() {
+  emit("update:searchTerm", searchTerm.value);
+}
 </script>
 
 <style lang="scss" scoped></style>
